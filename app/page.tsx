@@ -3,6 +3,13 @@
 import { useState } from 'react';
 import styles from "./page.module.css";
 
+interface SearchResult {
+  ok: boolean;
+  query?: unknown;
+  results?: unknown;
+  error?: string;
+}
+
 export default function Home() {
   const [formData, setFormData] = useState({
     make: 'BMW',
@@ -15,7 +22,7 @@ export default function Home() {
     sites: 'bilbasen.dk\ndba.dk\nbiltorvet.dk\nautotorvet.dk'
   });
 
-  const [result, setResult] = useState<unknown>(null);
+  const [result, setResult] = useState<SearchResult | null>(null);
   const [loading, setLoading] = useState(false);
 
   const handleSubmit = async (e: React.FormEvent) => {
