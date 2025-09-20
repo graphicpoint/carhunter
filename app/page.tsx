@@ -15,7 +15,7 @@ export default function Home() {
     sites: 'bilbasen.dk\ndba.dk\nbiltorvet.dk\nautotorvet.dk'
   });
 
-  const [result, setResult] = useState<any>(null);
+  const [result, setResult] = useState<unknown>(null);
   const [loading, setLoading] = useState(false);
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -37,7 +37,7 @@ export default function Home() {
 
       const data = await response.json();
       setResult(data);
-    } catch (error) {
+    } catch {
       setResult({ ok: false, error: 'Network error' });
     } finally {
       setLoading(false);

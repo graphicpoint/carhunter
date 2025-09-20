@@ -105,7 +105,7 @@ Hvis JSON ikke er muligt, giv da et kort tekstsvar med de bedste fund.`;
         query: body,
         results: parsedResults
       });
-    } catch (parseError) {
+    } catch {
       // Fallback to raw text response
       return NextResponse.json({
         ok: true,
