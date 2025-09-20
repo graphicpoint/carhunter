@@ -1,36 +1,129 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# CarHunter - Step 1: MVP Search Engine
 
-## Getting Started
+CarHunter is a cloud-hosted car search engine for Danish dealers and leasing companies. Users input search criteria and the system performs web searches via the Perplexity API against selected Danish car sites.
 
-First, run the development server:
+## Live Application
+
+🚀 **Live URL**: https://carhunter-lars-projects-3dde7303.vercel.app
+
+## API Endpoints
+
+### GET /api/ping
+Health check endpoint that returns server status and timestamp.
+
+**Response:**
+```json
+{
+  "ok": true,
+  "ts": 1758385295640
+}
+```
+
+### POST /api/search
+Main search functionality using Perplexity API to search Danish car sites.
+
+**Request Body:**
+```json
+{
+  "make": "BMW",
+  "model": "X3",
+  "year_from": 2020,
+  "year_to": 2024,
+  "max_price": 500000,
+  "equipment": "læder, panoramatag",
+  "optimization": "laveste pris",
+  "sites": ["bilbasen.dk","dba.dk","biltorvet.dk","autotorvet.dk"]
+}
+```
+
+**Success Response:**
+```json
+{
+  "ok": true,
+  "query": {...},
+  "results": [...]
+}
+```
+
+**Fallback Response (if JSON parsing fails):**
+```json
+{
+  "ok": true,
+  "query": {...},
+  "results": {
+    "raw": "<response text>"
+  }
+}
+```
+
+## Environment Setup
+
+### Required Environment Variables
+
+Set these in **Vercel → Project → Environment Variables → Production**:
+
+- `PERPLEXITY_API_KEY` - Your Perplexity API key (required)
+
+### Getting a Perplexity API Key
+
+1. Go to [Perplexity API](https://www.perplexity.ai/settings/api)
+2. Sign up/login and generate an API key
+3. Add it to Vercel environment variables
+
+## Testing the API
+
+### Ping Test
+```bash
+curl -s https://carhunter-lars-projects-3dde7303.vercel.app/api/ping
+```
+
+### Search Test
+```bash
+curl -s -X POST https://carhunter-lars-projects-3dde7303.vercel.app/api/search \
+ -H 'Content-Type: application/json' \
+ -d '{
+  "make":"BMW",
+  "model":"X3",
+  "year_from":2020,
+  "year_to":2024,
+  "max_price":500000,
+  "equipment":"læder, panoramatag",
+  "optimization":"laveste pris",
+  "sites":["bilbasen.dk","dba.dk","biltorvet.dk","autotorvet.dk"]
+}'
+```
+
+## Technical Stack
+
+- **Framework**: Next.js 14 with TypeScript and App Router
+- **Deployment**: Vercel (connected to GitHub)
+- **API Integration**: Perplexity API with `sonar` model
+- **Repository**: https://github.com/graphicpoint/carhunter
+
+## Features Implemented
+
+✅ Live Vercel URL with health check endpoint
+✅ POST /api/search returns structured results or fallback
+✅ No hardcoded API keys in source code
+✅ Basic UI for manual testing
+✅ Proper error handling and HTTP status codes
+✅ Danish language prompts for Perplexity API
+
+## Development
+
+This is a [Next.js](https://nextjs.org) project. To run locally:
 
 ```bash
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+Open [http://localhost:3000](http://localhost:3000) to see the result.
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+## Deployment
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+The app auto-deploys to Vercel when changes are pushed to the `main` branch.
 
-## Learn More
+## Next Steps (Future Phases)
 
-To learn more about Next.js, take a look at the following resources:
-
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
-
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
-
-## Deploy on Vercel
-
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+- **Step 2**: Supabase integration (authentication, database, RLS)
+- **Step 3**: Stripe integration (plans, quotas, billing)
