@@ -1,95 +1,174 @@
-import Image from "next/image";
+'use client';
+
+import { useState } from 'react';
 import styles from "./page.module.css";
 
 export default function Home() {
+  const [formData, setFormData] = useState({
+    make: 'BMW',
+    model: 'X3',
+    year_from: 2020,
+    year_to: 2024,
+    max_price: 500000,
+    equipment: 'læder, panoramatag',
+    optimization: 'laveste pris',
+    sites: 'bilbasen.dk\ndba.dk\nbiltorvet.dk\nautotorvet.dk'
+  });
+
+  const [result, setResult] = useState<any>(null);
+  const [loading, setLoading] = useState(false);
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setLoading(true);
+    setResult(null);
+
+    try {
+      const response = await fetch('/api/search', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          ...formData,
+          sites: formData.sites.split('\n').filter(s => s.trim())
+        }),
+      });
+
+      const data = await response.json();
+      setResult(data);
+    } catch (error) {
+      setResult({ ok: false, error: 'Network error' });
+    } finally {
+      setLoading(false);
+    }
+  };
+
   return (
     <div className={styles.page}>
       <main className={styles.main}>
-        <Image
-          className={styles.logo}
-          src="/next.svg"
-          alt="Next.js logo"
-          width={180}
-          height={38}
-          priority
-        />
-        <ol>
-          <li>
-            Get started by editing <code>app/page.tsx</code>.
-          </li>
-          <li>Save and see your changes instantly.</li>
-        </ol>
+        <h1>CarHunter - Search Test</h1>
 
-        <div className={styles.ctas}>
-          <a
-            className={styles.primary}
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
+        <form onSubmit={handleSubmit} style={{ maxWidth: '600px', margin: '0 auto' }}>
+          <div style={{ marginBottom: '1rem' }}>
+            <label>
+              Make:
+              <input
+                type="text"
+                value={formData.make}
+                onChange={(e) => setFormData({ ...formData, make: e.target.value })}
+                style={{ width: '100%', padding: '0.5rem', margin: '0.25rem 0' }}
+              />
+            </label>
+          </div>
+
+          <div style={{ marginBottom: '1rem' }}>
+            <label>
+              Model:
+              <input
+                type="text"
+                value={formData.model}
+                onChange={(e) => setFormData({ ...formData, model: e.target.value })}
+                style={{ width: '100%', padding: '0.5rem', margin: '0.25rem 0' }}
+              />
+            </label>
+          </div>
+
+          <div style={{ display: 'flex', gap: '1rem', marginBottom: '1rem' }}>
+            <label style={{ flex: 1 }}>
+              Year From:
+              <input
+                type="number"
+                value={formData.year_from}
+                onChange={(e) => setFormData({ ...formData, year_from: parseInt(e.target.value) })}
+                style={{ width: '100%', padding: '0.5rem', margin: '0.25rem 0' }}
+              />
+            </label>
+            <label style={{ flex: 1 }}>
+              Year To:
+              <input
+                type="number"
+                value={formData.year_to}
+                onChange={(e) => setFormData({ ...formData, year_to: parseInt(e.target.value) })}
+                style={{ width: '100%', padding: '0.5rem', margin: '0.25rem 0' }}
+              />
+            </label>
+          </div>
+
+          <div style={{ marginBottom: '1rem' }}>
+            <label>
+              Max Price (DKK):
+              <input
+                type="number"
+                value={formData.max_price}
+                onChange={(e) => setFormData({ ...formData, max_price: parseInt(e.target.value) })}
+                style={{ width: '100%', padding: '0.5rem', margin: '0.25rem 0' }}
+              />
+            </label>
+          </div>
+
+          <div style={{ marginBottom: '1rem' }}>
+            <label>
+              Equipment:
+              <input
+                type="text"
+                value={formData.equipment}
+                onChange={(e) => setFormData({ ...formData, equipment: e.target.value })}
+                style={{ width: '100%', padding: '0.5rem', margin: '0.25rem 0' }}
+              />
+            </label>
+          </div>
+
+          <div style={{ marginBottom: '1rem' }}>
+            <label>
+              Optimization:
+              <input
+                type="text"
+                value={formData.optimization}
+                onChange={(e) => setFormData({ ...formData, optimization: e.target.value })}
+                style={{ width: '100%', padding: '0.5rem', margin: '0.25rem 0' }}
+              />
+            </label>
+          </div>
+
+          <div style={{ marginBottom: '1rem' }}>
+            <label>
+              Sites (one per line):
+              <textarea
+                value={formData.sites}
+                onChange={(e) => setFormData({ ...formData, sites: e.target.value })}
+                rows={4}
+                style={{ width: '100%', padding: '0.5rem', margin: '0.25rem 0' }}
+              />
+            </label>
+          </div>
+
+          <button
+            type="submit"
+            disabled={loading}
+            style={{
+              width: '100%',
+              padding: '1rem',
+              backgroundColor: loading ? '#ccc' : '#0070f3',
+              color: 'white',
+              border: 'none',
+              borderRadius: '4px',
+              cursor: loading ? 'not-allowed' : 'pointer'
+            }}
           >
-            <Image
-              className={styles.logo}
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={20}
-              height={20}
-            />
-            Deploy now
-          </a>
-          <a
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-            className={styles.secondary}
-          >
-            Read our docs
-          </a>
-        </div>
+            {loading ? 'Searching...' : 'Search Cars'}
+          </button>
+        </form>
+
+        {result && (
+          <div style={{ marginTop: '2rem', padding: '1rem', backgroundColor: '#f5f5f5', borderRadius: '4px' }}>
+            <h3>Result:</h3>
+            <pre style={{ whiteSpace: 'pre-wrap', fontSize: '0.9rem' }}>
+              {JSON.stringify(result, null, 2)}
+            </pre>
+          </div>
+        )}
       </main>
-      <footer className={styles.footer}>
-        <a
-          href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/file.svg"
-            alt="File icon"
-            width={16}
-            height={16}
-          />
-          Learn
-        </a>
-        <a
-          href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/window.svg"
-            alt="Window icon"
-            width={16}
-            height={16}
-          />
-          Examples
-        </a>
-        <a
-          href="https://nextjs.org?utm_source=create-next-app&utm_medium=appdir-template&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/globe.svg"
-            alt="Globe icon"
-            width={16}
-            height={16}
-          />
-          Go to nextjs.org →
-        </a>
-      </footer>
     </div>
   );
 }
