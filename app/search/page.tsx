@@ -3,6 +3,7 @@
 import { useState } from 'react';
 import SearchForm from './Form';
 import { SearchFormData, SearchResponse, SearchRequest } from '../../types/search';
+import { expandSiteSelection } from '../../lib/sites';
 
 export default function SearchPage() {
   const [result, setResult] = useState<SearchResponse | null>(null);
@@ -15,7 +16,8 @@ export default function SearchPage() {
     try {
       // Convert form data to API request format
       const allModels = Object.values(formData.models).flat();
-      
+      const expandedSites = expandSiteSelection(formData.sites);
+
       const searchRequest: SearchRequest = {
         mode: formData.mode,
         makes: formData.makes,
@@ -28,7 +30,7 @@ export default function SearchPage() {
         monthly_max: formData.monthly_max,
         downpayment_max: formData.downpayment_max,
         optimization: formData.optimization,
-        sites: formData.sites as string[],
+        sites: expandedSites,
       };
 
       const response = await fetch('/api/search', {

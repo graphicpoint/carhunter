@@ -106,16 +106,7 @@ export default function SearchForm({ onSubmit, loading = false }: SearchFormProp
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    
-    // Expand site groups to individual sites
-    const expandedSites = expandSiteSelection(formData.sites);
-
-    const submitData: SearchFormData = {
-      ...formData,
-      sites: expandedSites as string[],
-    };
-    
-    onSubmit(submitData);
+    onSubmit(formData);
   };
 
   const makeOptions: MakeOption[] = makesData?.makes?.map(make => ({
