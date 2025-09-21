@@ -15,7 +15,7 @@ import {
   ModelsResponse
 } from '../../types/search';
 import { EQUIPMENT_OPTIONS } from '../../lib/equipment';
-import { SITE_OPTIONS, expandSiteSelection } from '../../lib/sites';
+import { SITE_OPTIONS } from '../../lib/sites';
 
 const animatedComponents = makeAnimated();
 
@@ -122,8 +122,8 @@ export default function SearchForm({ onSubmit, loading = false }: SearchFormProp
   const siteOptions: SiteOption[] = SITE_OPTIONS.map(site => ({
     value: site.value,
     label: site.label,
-    isGroup: site.isGroup,
-    group: site.group,
+    isGroup: 'isGroup' in site ? site.isGroup : undefined,
+    group: 'group' in site ? site.group : undefined,
   }));
 
   const optimizationOptions = formData.mode === 'buy' 
