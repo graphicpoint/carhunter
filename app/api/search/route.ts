@@ -1,6 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { SearchRequest, SearchMode, FuelType } from '../../../types/search';
-import { EquipmentValue } from '../../../lib/equipment';
+import { SearchRequest } from '../../../types/search';
 
 interface PerplexityResponse {
   choices: Array<{

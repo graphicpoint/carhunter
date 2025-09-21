@@ -41,10 +41,10 @@ export default function SearchPage() {
 
       const data = await response.json();
       setResult(data);
-    } catch (error) {
-      setResult({ 
-        ok: false, 
-        error: 'Network error - kunne ikke forbinde til serveren' 
+    } catch {
+      setResult({
+        ok: false,
+        error: 'Network error - kunne ikke forbinde til serveren'
       });
     } finally {
       setLoading(false);

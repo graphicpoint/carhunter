@@ -4,14 +4,11 @@ import { useState, useEffect } from 'react';
 import Select from 'react-select';
 import makeAnimated from 'react-select/animated';
 import { useQuery } from '@tanstack/react-query';
-import { 
-  SearchFormData, 
-  SearchMode, 
-  FuelType, 
-  BuyOptimization, 
-  LeasingOptimization,
+import {
+  SearchFormData,
+  SearchMode,
+  FuelType,
   MakeOption,
-  ModelOption,
   EquipmentOption,
   SiteOption,
   MakesResponse,
@@ -112,13 +109,10 @@ export default function SearchForm({ onSubmit, loading = false }: SearchFormProp
     
     // Expand site groups to individual sites
     const expandedSites = expandSiteSelection(formData.sites);
-    
-    // Flatten models from all makes
-    const allModels = Object.values(formData.models).flat();
-    
+
     const submitData: SearchFormData = {
       ...formData,
-      sites: expandedSites as any,
+      sites: expandedSites as string[],
     };
     
     onSubmit(submitData);
@@ -344,7 +338,7 @@ export default function SearchForm({ onSubmit, loading = false }: SearchFormProp
           value={optimizationOptions.find(option => option.value === formData.optimization)}
           onChange={(selected) => {
             if (selected) {
-              setFormData(prev => ({ ...prev, optimization: selected.value as any }));
+              setFormData(prev => ({ ...prev, optimization: selected.value as string }));
             }
           }}
           placeholder="Vælg optimering..."
