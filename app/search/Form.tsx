@@ -8,6 +8,8 @@ import {
   SearchFormData,
   SearchMode,
   FuelType,
+  BuyOptimization,
+  LeasingOptimization,
   MakeOption,
   EquipmentOption,
   SiteOption,
@@ -329,7 +331,10 @@ export default function SearchForm({ onSubmit, loading = false }: SearchFormProp
           value={optimizationOptions.find(option => option.value === formData.optimization)}
           onChange={(selected) => {
             if (selected) {
-              setFormData(prev => ({ ...prev, optimization: selected.value as string }));
+              setFormData(prev => ({
+                ...prev,
+                optimization: selected.value as BuyOptimization | LeasingOptimization
+              }));
             }
           }}
           placeholder="Vælg optimering..."
