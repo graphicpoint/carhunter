@@ -79,7 +79,7 @@ export default function Home() {
 
           <div style={{ marginBottom: '1rem' }}>
             <label>
-              Models (komma-separeret, f.eks. "X3, X5, 3-serie"):
+              Models (komma-separeret, f.eks. &quot;X3, X5, 3-serie&quot;):
               <input
                 type="text"
                 value={formData.model}
@@ -125,7 +125,7 @@ export default function Home() {
 
           <div style={{ marginBottom: '1rem' }}>
             <label>
-              Equipment (komma-separeret, f.eks. "læder, panoramatag, navigation"):
+              Equipment (komma-separeret, f.eks. &quot;læder, panoramatag, navigation&quot;):
               <input
                 type="text"
                 value={formData.equipment}
