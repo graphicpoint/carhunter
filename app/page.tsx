@@ -13,11 +13,11 @@ interface SearchResult {
 export default function Home() {
   const [formData, setFormData] = useState({
     make: 'BMW',
-    model: 'X3',
+    model: '',
     year_from: 2020,
     year_to: 2024,
     max_price: 500000,
-    equipment: 'læder, panoramatag',
+    equipment: '',
     optimization: 'laveste pris',
     sites: 'bilbasen.dk\ndba.dk\nbiltorvet.dk\nautotorvet.dk'
   });
@@ -37,7 +37,15 @@ export default function Home() {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          ...formData,
+          mode: 'buy',
+          makes: formData.make ? [formData.make] : [],
+          models: formData.model ? formData.model.split(',').map(m => m.trim()).filter(m => m) : [],
+          year_from: formData.year_from,
+          year_to: formData.year_to,
+          max_price: formData.max_price,
+          fuel_types: [],
+          equipment: formData.equipment ? formData.equipment.split(',').map(e => e.trim()).filter(e => e) : [],
+          optimization: formData.optimization,
           sites: formData.sites.split('\n').filter(s => s.trim())
         }),
       });
@@ -71,11 +79,12 @@ export default function Home() {
 
           <div style={{ marginBottom: '1rem' }}>
             <label>
-              Model:
+              Models (komma-separeret, f.eks. "X3, X5, 3-serie"):
               <input
                 type="text"
                 value={formData.model}
                 onChange={(e) => setFormData({ ...formData, model: e.target.value })}
+                placeholder="X3, X5, 3-serie"
                 style={{ width: '100%', padding: '0.5rem', margin: '0.25rem 0' }}
               />
             </label>
@@ -116,11 +125,12 @@ export default function Home() {
 
           <div style={{ marginBottom: '1rem' }}>
             <label>
-              Equipment:
+              Equipment (komma-separeret, f.eks. "læder, panoramatag, navigation"):
               <input
                 type="text"
                 value={formData.equipment}
                 onChange={(e) => setFormData({ ...formData, equipment: e.target.value })}
+                placeholder="læder, panoramatag, navigation"
                 style={{ width: '100%', padding: '0.5rem', margin: '0.25rem 0' }}
               />
             </label>
