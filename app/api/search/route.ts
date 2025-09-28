@@ -42,14 +42,18 @@ function filterValidCarResults(results: CarResult[]): CarResult[] {
       '/soeg', // Danish search pages
       '/kategori', // Category pages
       '/models', // Model overview pages
+      '/bil/bmw/', // Category pages like /bil/bmw/x3/51
+      '/bilmaerker/', // Brand category pages
+      '/varevogn-moms-', // Commercial vehicle pages
     ];
 
     // Check if URL contains invalid patterns without specific car ID
     const hasInvalidPattern = invalidPatterns.some(pattern => {
       if (url.includes(pattern)) {
-        // Allow if it has a specific car ID (numbers at the end)
+        // Allow if it has a specific car ID (7+ digits or specific patterns)
         const afterPattern = url.split(pattern)[1];
-        return !afterPattern || !/\d{6,}/.test(afterPattern); // No 6+ digit ID
+        // Must have a long ID or specific car identifier
+        return !afterPattern || (!/\d{7,}/.test(afterPattern) && !/\d+-\d+/.test(afterPattern));
       }
       return false;
     });
@@ -59,7 +63,7 @@ function filterValidCarResults(results: CarResult[]): CarResult[] {
     // Must have basic car information
     if (!car.title && !car.year && !car.ask_price) return false;
 
-    // URL should be from allowed Danish sites
+    // URL should be from allowed Danish sites ONLY
     const allowedDomains = ['bilbasen.dk', 'dba.dk', 'biltorvet.dk', 'autotorvet.dk'];
     const hasAllowedDomain = allowedDomains.some(domain => url.includes(domain));
     if (!hasAllowedDomain) return false;
@@ -85,17 +89,10 @@ function buildSearchPrompt(body: SearchRequest): string {
         ? `til ${body.year_to}`
         : 'alle årgange';
 
-  // Build price criteria with tax consideration
+  // Build price criteria
   let priceText = '';
   if (body.mode === 'buy' && body.max_price) {
     priceText = `med maksimal pris ${body.max_price.toLocaleString('da-DK')} kr`;
-
-    // Add tax status
-    if (body.tax_paid === true) {
-      priceText += ' (kun biler med betalt afgift)';
-    } else if (body.tax_paid === false) {
-      priceText += ' (inkluder biler uden afgift)';
-    }
   } else if (body.mode === 'leasing') {
     const monthlyText = body.monthly_max ? `max ${body.monthly_max.toLocaleString('da-DK')} kr/md` : '';
     const downText = body.downpayment_max ? `max udbetaling ${body.downpayment_max.toLocaleString('da-DK')} kr` : '';
@@ -124,6 +121,7 @@ function buildSearchPrompt(body: SearchRequest): string {
 
 KRITISKE INSTRUKTIONER:
 - Søg KUN på disse specificerede danske sites: ${sitesText}
+- IGNORER alle andre websites (bn.dk, bil360.dk, etc.)
 - Returner MINIMUM 10 bil-annoncer hvis tilgængelige
 - Kun direkte links til specifikke bil-annoncer, ALDRIG kategorisider eller søgesider
 - Links skal være til individuelle bil-annoncer med konkrete biler til salg
@@ -147,7 +145,11 @@ RETURNER JSON FORMAT:
   }
 ]
 
-VIGTIGT: Minimum 10 resultater, kun specifikke bil-annoncer, kun de angivne danske sites.`;
+VIGTIGT:
+- Minimum 10 resultater
+- Kun specifikke bil-annoncer
+- Kun de angivne danske sites: ${sitesText}
+- INGEN kategorisider eller søgesider`;
 }
 
 export async function POST(request: NextRequest) {
