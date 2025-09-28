@@ -24,22 +24,25 @@ export type LeasingOptimization =
 export interface SearchFormData {
   // Mode selection
   mode: SearchMode;
-  
+
   // Vehicle selection
   makes: string[];
   models: Record<string, string[]>; // make -> models[]
-  
+
   // Specifications
   year_from?: number;
   year_to?: number;
   fuel_types: FuelType[];
   equipment: EquipmentValue[];
-  
+
   // Pricing (conditional based on mode)
   max_price?: number; // for buy mode
   monthly_max?: number; // for leasing mode
   downpayment_max?: number; // for leasing mode
-  
+
+  // Danish tax considerations
+  tax_paid?: boolean; // true = kun biler med betalt afgift, false = inkluder biler uden afgift
+
   // Search preferences
   optimization: BuyOptimization | LeasingOptimization;
   sites: SiteValue[];
@@ -56,6 +59,7 @@ export interface SearchRequest {
   max_price?: number;
   monthly_max?: number;
   downpayment_max?: number;
+  tax_paid?: boolean;
   optimization: string;
   sites: string[];
 }

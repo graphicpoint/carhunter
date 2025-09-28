@@ -27,6 +27,7 @@ export default function Home() {
         max_price: formData.max_price,
         monthly_max: formData.monthly_max,
         downpayment_max: formData.downpayment_max,
+        tax_paid: formData.tax_paid,
         optimization: formData.optimization,
         sites: formData.sites as string[],
       };
@@ -97,7 +98,12 @@ export default function Home() {
                   result.results.length > 0 ? (
                     <div>
                       <p style={{ marginBottom: '1rem', color: '#666' }}>
-                        Fandt {result.results.length} resultater
+                        Fandt {result.results.length} gyldige resultater
+                        {(result as any).raw_total && (result as any).raw_total > result.results.length && (
+                          <span style={{ color: '#888', fontSize: '0.9em' }}>
+                            {' '}(filtrerede {(result as any).raw_total - result.results.length} irrelevante resultater fra)
+                          </span>
+                        )}
                       </p>
                       <div style={{ overflowX: 'auto' }}>
                         <table style={{

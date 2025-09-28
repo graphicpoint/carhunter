@@ -59,6 +59,7 @@ export default function SearchForm({ onSubmit, loading = false }: SearchFormProp
     models: {},
     fuel_types: [],
     equipment: [],
+    tax_paid: true, // Default to cars with tax paid
     optimization: 'laveste_pris',
     sites: ['group:DK'],
   });
@@ -96,24 +97,15 @@ export default function SearchForm({ onSubmit, loading = false }: SearchFormProp
     enabled: selectedMakes.length > 0,
   });
 
-  // Update available models when makes change, but don't auto-select them
-  const [availableModels, setAvailableModels] = useState<Record<string, string[]>>({});
-
+  // Update models when makes change
   useEffect(() => {
     if (modelsData) {
-      setAvailableModels(modelsData);
-      // Remove models for makes that are no longer selected
-      setFormData(prev => {
-        const newModels = { ...prev.models };
-        Object.keys(newModels).forEach(make => {
-          if (!selectedMakes.includes(make)) {
-            delete newModels[make];
-          }
-        });
-        return { ...prev, models: newModels };
-      });
+      setFormData(prev => ({
+        ...prev,
+        models: modelsData,
+      }));
     }
-  }, [modelsData, selectedMakes]);
+  }, [modelsData]);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -203,8 +195,10 @@ export default function SearchForm({ onSubmit, loading = false }: SearchFormProp
                 isMulti
                 components={animatedComponents}
                 closeMenuOnSelect={false}
-                options={availableModels?.[make]?.map(model => ({ value: model, label: model })) || []}
-                value={formData.models[make]?.map(model => ({ value: model, label: model })) || []}
+                options={modelsData?.[make]?.map(model => ({ value: model, label: model })) || []}
+                value={modelsData?.[make]?.filter(model => 
+                  formData.models[make]?.includes(model)
+                ).map(model => ({ value: model, label: model })) || []}
                 onChange={(selected) => {
                   const models = selected ? selected.map(s => s.value) : [];
                   setFormData(prev => ({
@@ -268,20 +262,46 @@ export default function SearchForm({ onSubmit, loading = false }: SearchFormProp
       </div>
 
       {formData.mode === 'buy' ? (
-        <div className="form-section">
-          <label>Max pris (kr)</label>
-          <input
-            type="number"
-            min="0"
-            step="1000"
-            value={formData.max_price || ''}
-            onChange={(e) => setFormData(prev => ({ 
-              ...prev, 
-              max_price: e.target.value ? parseInt(e.target.value) : undefined 
-            }))}
-            placeholder="500000"
-          />
-        </div>
+        <>
+          <div className="form-section">
+            <label>Max pris (kr)</label>
+            <input
+              type="number"
+              min="0"
+              step="1000"
+              value={formData.max_price || ''}
+              onChange={(e) => setFormData(prev => ({
+                ...prev,
+                max_price: e.target.value ? parseInt(e.target.value) : undefined
+              }))}
+              placeholder="500000"
+            />
+          </div>
+
+          <div className="form-section">
+            <label>Afgiftsstatus</label>
+            <div style={{ display: 'flex', gap: '1rem', marginTop: '0.5rem' }}>
+              <label style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                <input
+                  type="radio"
+                  name="tax_paid"
+                  checked={formData.tax_paid === true}
+                  onChange={() => setFormData(prev => ({ ...prev, tax_paid: true }))}
+                />
+                Kun biler med betalt afgift
+              </label>
+              <label style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                <input
+                  type="radio"
+                  name="tax_paid"
+                  checked={formData.tax_paid === false}
+                  onChange={() => setFormData(prev => ({ ...prev, tax_paid: false }))}
+                />
+                Inkluder biler uden afgift
+              </label>
+            </div>
+          </div>
+        </>
       ) : (
         <div className="form-row">
           <div className="form-section">

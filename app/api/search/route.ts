@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { SearchRequest } from '../../../types/search';
+import { expandEquipmentTerms } from '../../../lib/equipment-synonyms';
 
 interface PerplexityResponse {
   choices: Array<{
@@ -7,6 +8,64 @@ interface PerplexityResponse {
       content: string;
     };
   }>;
+}
+
+interface CarResult {
+  title?: string;
+  url?: string;
+  ask_price?: number;
+  monthly_price?: number;
+  year?: number;
+  mileage?: number;
+  location?: string;
+  fuel_type?: string;
+  transmission?: string;
+}
+
+/**
+ * Filter out invalid car results (category pages, invalid URLs, etc.)
+ */
+function filterValidCarResults(results: CarResult[]): CarResult[] {
+  if (!Array.isArray(results)) return [];
+
+  return results.filter(car => {
+    // Must have a URL
+    if (!car.url) return false;
+
+    // Filter out category pages and search pages
+    const url = car.url.toLowerCase();
+    const invalidPatterns = [
+      '/brugt/bil/', // Category pages like /brugt/bil/audi/rs6
+      '/biler/brugte-biler/', // Category pages
+      '/da/brugte-biler/', // Category pages
+      '/search', // Search pages
+      '/soeg', // Danish search pages
+      '/kategori', // Category pages
+      '/models', // Model overview pages
+    ];
+
+    // Check if URL contains invalid patterns without specific car ID
+    const hasInvalidPattern = invalidPatterns.some(pattern => {
+      if (url.includes(pattern)) {
+        // Allow if it has a specific car ID (numbers at the end)
+        const afterPattern = url.split(pattern)[1];
+        return !afterPattern || !/\d{6,}/.test(afterPattern); // No 6+ digit ID
+      }
+      return false;
+    });
+
+    if (hasInvalidPattern) return false;
+
+    // Must have basic car information
+    if (!car.title && !car.year && !car.ask_price) return false;
+
+    // URL should be from allowed Danish sites
+    const allowedDomains = ['bilbasen.dk', 'dba.dk', 'biltorvet.dk', 'autotorvet.dk'];
+    const hasAllowedDomain = allowedDomains.some(domain => url.includes(domain));
+    if (!hasAllowedDomain) return false;
+
+    return true;
+  });
 }
 
 function buildSearchPrompt(body: SearchRequest): string {
@@ -26,10 +85,17 @@ function buildSearchPrompt(body: SearchRequest): string {
         ? `til ${body.year_to}`
         : 'alle årgange';
 
-  // Build price criteria
+  // Build price criteria with tax consideration
   let priceText = '';
   if (body.mode === 'buy' && body.max_price) {
     priceText = `med maksimal pris ${body.max_price.toLocaleString('da-DK')} kr`;
+
+    // Add tax status
+    if (body.tax_paid === true) {
+      priceText += ' (kun biler med betalt afgift)';
+    } else if (body.tax_paid === false) {
+      priceText += ' (inkluder biler uden afgift)';
+    }
   } else if (body.mode === 'leasing') {
     const monthlyText = body.monthly_max ? `max ${body.monthly_max.toLocaleString('da-DK')} kr/md` : '';
     const downText = body.downpayment_max ? `max udbetaling ${body.downpayment_max.toLocaleString('da-DK')} kr` : '';
@@ -42,9 +108,9 @@ function buildSearchPrompt(body: SearchRequest): string {
     ? ` (brændstof: ${body.fuel_types.join(', ')})`
     : '';
 
-  // Build equipment
+  // Build equipment with synonyms
   const equipmentText = body.equipment.length > 0
-    ? ` med udstyr: ${body.equipment.join(', ')}`
+    ? ` med udstyr: ${expandEquipmentTerms(body.equipment)}`
     : '';
 
   // Build optimization
@@ -54,24 +120,34 @@ function buildSearchPrompt(body: SearchRequest): string {
 
   const modeText = body.mode === 'leasing' ? 'leasing af' : 'køb af';
 
-  return `Som bilkøber-assistent skal du søge efter ${modeText} ${vehicleText} ${yearText} ${priceText}${fuelText}${equipmentText}${optimizationText} på følgende danske bilsites: ${sitesText}.
+  return `Du er en ekspert bil-søgemaskine for danske bilsites.
 
-Søg kun på de specificerede sites og returner resultater i JSON format med følgende struktur:
+KRITISKE INSTRUKTIONER:
+- Søg KUN på disse specificerede danske sites: ${sitesText}
+- Returner MINIMUM 10 bil-annoncer hvis tilgængelige
+- Kun direkte links til specifikke bil-annoncer, ALDRIG kategorisider eller søgesider
+- Links skal være til individuelle bil-annoncer med konkrete biler til salg
+- Ignorer alle andre websites end de specificerede danske sites
+
+SØGEKRITERIER:
+${modeText} ${vehicleText} ${yearText} ${priceText}${fuelText}${equipmentText}${optimizationText}
+
+RETURNER JSON FORMAT:
 [
   {
-    "title": "bil titel",
-    "url": "link til bil",
-    "ask_price": pris_i_kr,
-    "monthly_price": månedlig_pris_i_kr,
-    "year": årstal,
-    "mileage": kilometer,
+    "title": "konkret bil titel med mærke og model",
+    "url": "direkte link til specifik bil-annonce",
+    "ask_price": pris_i_kr_som_nummer,
+    "monthly_price": månedlig_pris_i_kr_eller_null,
+    "year": årstal_som_nummer,
+    "mileage": kilometer_som_nummer,
     "location": "by/område",
     "fuel_type": "brændstof",
     "transmission": "gearkasse"
   }
 ]
 
-Hvis JSON ikke er muligt, giv da et kort tekstsvar med de bedste fund.`;
+VIGTIGT: Minimum 10 resultater, kun specifikke bil-annoncer, kun de angivne danske sites.`;
 }
 
 export async function POST(request: NextRequest) {
@@ -145,10 +221,16 @@ export async function POST(request: NextRequest) {
     // Try to parse as JSON
     try {
       const parsedResults = JSON.parse(content);
+
+      // Filter valid car results
+      const filteredResults = filterValidCarResults(parsedResults);
+
       return NextResponse.json({
         ok: true,
         query: body,
-        results: parsedResults
+        results: filteredResults,
+        total_found: filteredResults.length,
+        raw_total: Array.isArray(parsedResults) ? parsedResults.length : 0
       });
     } catch {
       // Fallback to raw text response
