@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 
 export const revalidate = 86400; // 24 hours
+export const dynamic = 'force-dynamic'; // Prevent static generation
 
 interface CarQueryModel {
   model_name: string;
@@ -70,7 +71,7 @@ async function fetchFromVPIC(make: string): Promise<string[]> {
 
 export async function GET(request: NextRequest) {
   try {
-    const { searchParams } = new URL(request.url);
+    const searchParams = request.nextUrl.searchParams;
     const make = searchParams.get('make');
     const provider = searchParams.get('provider') || 'carquery';
     
