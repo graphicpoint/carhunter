@@ -1,0 +1,60 @@
+{
+  "version": "1.0",
+  "project": "Carhunter",
+  "auto_approve": {
+    "development_tools": true,
+    "browser_automation": true,
+    "sequential_thinking": true,
+    "vercel_operations": true,
+    "safe_terminal_commands": true,
+    "file_operations": true,
+    "code_analysis": true,
+    "web_requests": true
+  },
+  "workflow_automation": {
+    "test_and_deploy": {
+      "enabled": true,
+      "steps": [
+        "run_tests",
+        "build_check", 
+        "deploy_to_vercel",
+        "wait_for_deployment",
+        "verify_functionality"
+      ]
+    },
+    "debug_workflow": {
+      "enabled": true,
+      "capture_screenshots": true,
+      "capture_console_logs": true,
+      "capture_network_requests": true,
+      "sequential_thinking_for_complex_issues": true
+    },
+    "code_quality": {
+      "enabled": true,
+      "typescript_check": true,
+      "eslint_check": true,
+      "format_check": false
+    }
+  },
+  "permissions": {
+    "auto_commit": false,
+    "auto_push": false,
+    "auto_deploy": true,
+    "auto_test": true,
+    "auto_fix_build_errors": true,
+    "auto_update_dependencies": false
+  },
+  "development_context": {
+    "framework": "Next.js 15",
+    "language": "TypeScript",
+    "styling": "Inline Styles",
+    "deployment": "Vercel",
+    "api_integration": "Perplexity AI",
+    "target_sites": [
+      "bilbasen.dk",
+      "dba.dk",
+      "biltorvet.dk", 
+      "autotorvet.dk"
+    ]
+  }
+}

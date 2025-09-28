@@ -24,48 +24,44 @@ interface CarResult {
 
 /**
  * Validate specific URL patterns for each Danish car site
+ * Made more lenient to allow more valid car listings through
  */
 function isValidCarURL(url: string): boolean {
   const urlLower = url.toLowerCase();
 
-  // Bilbasen.dk - should have specific car ID, not category pages
+  // Bilbasen.dk - allow various formats
   if (urlLower.includes('bilbasen.dk')) {
-    // Valid: https://www.bilbasen.dk/brugt/bil/bmw/x3/id/12345678
-    // Invalid: https://www.bilbasen.dk/brugt/bil/bmw/x3
-    // Invalid: https://www.bilbasen.dk/brugt/bil/ps-bmw_suv?page=7
-    if (urlLower.includes('?page=') || urlLower.includes('/ps-')) return false;
-    if (urlLower.includes('/brugt/bil/') && !urlLower.match(/\/\d{6,}$/)) return false;
-    return urlLower.match(/\/\d{6,}$/) !== null;
+    // Block obvious category pages
+    if (urlLower.includes('?page=') || urlLower.includes('/ps-') || urlLower.includes('?includeengroscvr=')) return false;
+    if (urlLower.includes('/brugt/bil/') && urlLower.split('/').length < 6) return false; // Too short path
+    // Allow if it has a number at the end (car ID) - more lenient
+    return /\/\d{4,}$/.test(urlLower) || /\/id\/\d{4,}/.test(urlLower);
   }
 
-  // Biltorvet.dk - should have detailed car specification path
+  // Biltorvet.dk - more lenient validation
   if (urlLower.includes('biltorvet.dk')) {
-    // Valid: https://www.biltorvet.dk/bil/bmw/x3/2-0-xdrive20d-m-sport-aut/2876734
-    // Invalid: https://www.biltorvet.dk/bil/bmw/x3/14938579
     if (!urlLower.includes('/bil/')) return false;
-    const pathParts = urlLower.split('/bil/')[1]?.split('/');
-    if (!pathParts || pathParts.length < 4) return false;
-    // Should have: brand/model/specification/id
-    return pathParts.length >= 4 && /\d{6,}$/.test(pathParts[pathParts.length - 1]);
+    // Allow if it has a number at the end (car ID)
+    return /\/\d{4,}$/.test(urlLower);
   }
 
-  // DBA.dk - should have specific car ID
+  // DBA.dk - allow various ID formats
   if (urlLower.includes('dba.dk')) {
-    // Valid: https://www.dba.dk/bil/bmw-x3/id-12345678
-    return urlLower.match(/\/id-\d{6,}/) !== null;
+    // Allow id-XXXXX or just ending with numbers
+    return /\/id-\d{4,}/.test(urlLower) || (/\/bil\//.test(urlLower) && /\/\d{4,}$/.test(urlLower));
   }
 
-  // Autotorvet.dk - should have specific car ID
+  // Autotorvet.dk - more lenient
   if (urlLower.includes('autotorvet.dk')) {
-    // Valid: https://www.autotorvet.dk/bil/bmw/x3/12345678
-    return urlLower.match(/\/\d{6,}$/) !== null;
+    // Allow if it has /bil/ and ends with numbers
+    return urlLower.includes('/bil/') && /\/\d{4,}$/.test(urlLower);
   }
 
   return false;
 }
 
 /**
- * Filter out invalid car results with strict validation
+ * Filter out invalid car results with more lenient validation
  */
 function filterValidCarResults(results: CarResult[]): CarResult[] {
   if (!Array.isArray(results)) return [];
@@ -81,11 +77,11 @@ function filterValidCarResults(results: CarResult[]): CarResult[] {
     const hasAllowedDomain = allowedDomains.some(domain => url.includes(domain));
     if (!hasAllowedDomain) return false;
 
-    // Validate URL format for each site
+    // Validate URL format for each site (more lenient now)
     if (!isValidCarURL(car.url)) return false;
 
-    // Must have basic car information
-    if (!car.title && !car.year && !car.ask_price) return false;
+    // Must have basic car information (more lenient)
+    if (!car.title && !car.year && !car.ask_price && !car.monthly_price) return false;
 
     // Block foreign locations
     if (car.location && (
@@ -144,76 +140,24 @@ function buildSearchPrompt(body: SearchRequest): string {
 
   const modeText = body.mode === 'leasing' ? 'leasing af' : 'køb af';
 
-  // Different prompts for buy vs leasing
-  if (body.mode === 'leasing') {
-    return `Du er en ekspert bil-søgemaskine for danske bilsites specialiseret i LEASING tilbud.
+  return `Som bilkøber-assistent skal du søge efter ${modeText} ${vehicleText} ${yearText} ${priceText}${fuelText}${equipmentText}${optimizationText} på følgende danske bilsites: ${sitesText}.
 
-KRITISKE INSTRUKTIONER FOR LEASING:
-- Søg KUN på disse specificerede danske sites: ${sitesText}
-- IGNORER alle andre websites (autouncle.dk, autoline.dk, bn.dk, bil360.dk, etc.)
-- Find LEASING tilbud og månedlige priser, ikke købs-annoncer
-- Returner MINIMUM 10 leasing tilbud hvis tilgængelige
-- Kun direkte links til specifikke bil-annoncer med leasing priser
-- Inkluder månedlige leasing priser og udbetaling
-
-SØGEKRITERIER FOR LEASING:
-${modeText} ${vehicleText} ${yearText} ${priceText}${fuelText}${equipmentText}${optimizationText}
-
-RETURNER JSON FORMAT:
+Søg kun på de specificerede sites og returner resultater i JSON format med følgende struktur:
 [
   {
-    "title": "konkret bil titel med mærke og model",
-    "url": "direkte link til specifik bil-annonce",
-    "ask_price": købs_pris_i_kr_eller_null,
-    "monthly_price": månedlig_leasing_pris_i_kr,
-    "year": årstal_som_nummer,
-    "mileage": kilometer_som_nummer,
-    "location": "dansk_by/område",
+    "title": "bil titel",
+    "url": "link til bil",
+    "ask_price": pris_i_kr,
+    "monthly_price": månedlig_pris_i_kr,
+    "year": årstal,
+    "mileage": kilometer,
+    "location": "by/område",
     "fuel_type": "brændstof",
     "transmission": "gearkasse"
   }
 ]
 
-VIGTIGT FOR LEASING:
-- Minimum 10 leasing tilbud
-- Kun specifikke bil-annoncer med leasing priser
-- Kun de angivne danske sites: ${sitesText}
-- INGEN kategorisider eller søgesider`;
-  } else {
-    return `Du er en ekspert bil-søgemaskine for danske bilsites specialiseret i BIL-KØB.
-
-KRITISKE INSTRUKTIONER FOR KØB:
-- Søg KUN på disse specificerede danske sites: ${sitesText}
-- IGNORER alle andre websites (autouncle.dk, autoline.dk, bn.dk, bil360.dk, etc.)
-- Find biler til salg med købs-priser
-- Returner MINIMUM 10 bil-annoncer hvis tilgængelige
-- Kun direkte links til specifikke bil-annoncer
-- Kun danske resultater
-
-SØGEKRITERIER FOR KØB:
-${modeText} ${vehicleText} ${yearText} ${priceText}${fuelText}${equipmentText}${optimizationText}
-
-RETURNER JSON FORMAT:
-[
-  {
-    "title": "konkret bil titel med mærke og model",
-    "url": "direkte link til specifik bil-annonce",
-    "ask_price": købs_pris_i_kr_som_nummer,
-    "monthly_price": null,
-    "year": årstal_som_nummer,
-    "mileage": kilometer_som_nummer,
-    "location": "dansk_by/område",
-    "fuel_type": "brændstof",
-    "transmission": "gearkasse"
-  }
-]
-
-VIGTIGT FOR KØB:
-- Minimum 10 bil-annoncer
-- Kun specifikke bil-annoncer med købs-priser
-- Kun de angivne danske sites: ${sitesText}
-- INGEN kategorisider eller søgesider`;
-  }
+Hvis JSON ikke er muligt, giv da et kort tekstsvar med de bedste fund.`;
 }
 
 export async function POST(request: NextRequest) {
@@ -288,7 +232,7 @@ export async function POST(request: NextRequest) {
     try {
       const parsedResults = JSON.parse(content);
 
-      // Filter valid car results with strict validation
+      // Filter valid car results with more lenient validation
       const filteredResults = filterValidCarResults(parsedResults);
 
       return NextResponse.json({
