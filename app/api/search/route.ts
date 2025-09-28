@@ -24,64 +24,102 @@ interface CarResult {
 
 /**
  * Validate specific URL patterns for each Danish car site
- * Made more lenient to allow more valid car listings through
+ * Very lenient to allow most car listings through
  */
 function isValidCarURL(url: string): boolean {
   const urlLower = url.toLowerCase();
 
-  // Bilbasen.dk - allow various formats
+  // Bilbasen.dk - very lenient
   if (urlLower.includes('bilbasen.dk')) {
     // Block obvious category pages
     if (urlLower.includes('?page=') || urlLower.includes('/ps-') || urlLower.includes('?includeengroscvr=')) return false;
-    if (urlLower.includes('/brugt/bil/') && urlLower.split('/').length < 6) return false; // Too short path
-    // Allow if it has a number at the end (car ID) - more lenient
-    return /\/\d{4,}$/.test(urlLower) || /\/id\/\d{4,}/.test(urlLower);
+    // Allow most URLs that look like car listings
+    return urlLower.includes('/bil/') || /\/\d{3,}/.test(urlLower) || urlLower.includes('/id/');
   }
 
-  // Biltorvet.dk - more lenient validation
+  // Biltorvet.dk - very lenient
   if (urlLower.includes('biltorvet.dk')) {
-    if (!urlLower.includes('/bil/')) return false;
-    // Allow if it has a number at the end (car ID)
-    return /\/\d{4,}$/.test(urlLower);
+    // Allow most URLs that look like car listings
+    return urlLower.includes('/bil/') || /\/\d{3,}/.test(urlLower);
   }
 
-  // DBA.dk - allow various ID formats
+  // DBA.dk - very lenient
   if (urlLower.includes('dba.dk')) {
-    // Allow id-XXXXX or just ending with numbers
-    return /\/id-\d{4,}/.test(urlLower) || (/\/bil\//.test(urlLower) && /\/\d{4,}$/.test(urlLower));
+    // Allow most URLs that look like car listings
+    return urlLower.includes('/bil/') || urlLower.includes('/id-') || /\/\d{3,}/.test(urlLower);
   }
 
-  // Autotorvet.dk - more lenient
+  // Autotorvet.dk - very lenient
   if (urlLower.includes('autotorvet.dk')) {
-    // Allow if it has /bil/ and ends with numbers
-    return urlLower.includes('/bil/') && /\/\d{4,}$/.test(urlLower);
+    // Allow most URLs that look like car listings
+    return urlLower.includes('/bil/') || /\/\d{3,}/.test(urlLower);
   }
 
   return false;
 }
 
 /**
- * Filter out invalid car results with more lenient validation
+ * Filter out invalid car results with debug logging
  */
 function filterValidCarResults(results: CarResult[]): CarResult[] {
   if (!Array.isArray(results)) return [];
 
   return results.filter(car => {
     // Must have a URL
-    if (!car.url) return false;
+    if (!car.url) {
+      console.log('Filtered out: No URL', car);
+      return false;
+    }
 
     const url = car.url.toLowerCase();
 
-    // Strict whitelist - ONLY these domains allowed
-    const allowedDomains = ['bilbasen.dk', 'dba.dk', 'biltorvet.dk', 'autotorvet.dk'];
+    // Expanded whitelist - Danish car sites
+    const allowedDomains = [
+      'bilbasen.dk',
+      'dba.dk',
+      'biltorvet.dk',
+      'autotorvet.dk',
+      'bilhandel.dk',  // Added - common Danish car dealer site
+      'autouncle.dk',  // CRITICAL: Perplexity often uses this - major Danish car aggregator
+      'audi.dk',       // Added - official brand sites
+      'bmw.dk',
+      'toyota.dk',
+      'mercedes.dk',
+      'volkswagen.dk',
+      'ford.dk',
+      'peugeot.dk',
+      'citroen.dk',
+      'nissan.dk',
+      'hyundai.dk',
+      'kia.dk',
+      'mazda.dk',
+      'honda.dk',
+      'subaru.dk',
+      'mitsubishi.dk',
+      'bn.dk',         // Added - Bjarne Nielsen (common Danish dealer)
+      'autouncle.dk',  // CRITICAL: Perplexity often uses this - major Danish car aggregator
+      'bilpriser.dk',  // Additional Danish car sites
+      'bilzonen.dk',
+      'carsales.dk',
+      'carbase.dk'
+    ];
     const hasAllowedDomain = allowedDomains.some(domain => url.includes(domain));
-    if (!hasAllowedDomain) return false;
+    if (!hasAllowedDomain) {
+      console.log('Filtered out: Domain not allowed', car.url);
+      return false;
+    }
 
     // Validate URL format for each site (more lenient now)
-    if (!isValidCarURL(car.url)) return false;
+    if (!isValidCarURL(car.url)) {
+      console.log('Filtered out: Invalid URL format', car.url);
+      return false;
+    }
 
     // Must have basic car information (more lenient)
-    if (!car.title && !car.year && !car.ask_price && !car.monthly_price) return false;
+    if (!car.title && !car.year && !car.ask_price && !car.monthly_price) {
+      console.log('Filtered out: No basic car info', car);
+      return false;
+    }
 
     // Block foreign locations
     if (car.location && (
@@ -89,8 +127,12 @@ function filterValidCarResults(results: CarResult[]): CarResult[] {
       car.location.toLowerCase().includes('czech') ||
       car.location.toLowerCase().includes('germany') ||
       car.location.toLowerCase().includes('poland')
-    )) return false;
+    )) {
+      console.log('Filtered out: Foreign location', car.location);
+      return false;
+    }
 
+    console.log('Passed filter:', car.url);
     return true;
   });
 }
@@ -142,24 +184,26 @@ function buildSearchPrompt(body: SearchRequest): string {
 
   return `Som bilkøber-assistent skal du søge efter ${modeText} ${vehicleText} ${yearText} ${priceText}${fuelText}${equipmentText}${optimizationText} på følgende danske bilsites: ${sitesText}.
 
-VIGTIGT: Returner ALTID resultater i ren JSON format uden ekstra tekst eller markdown. Søg kun på de specificerede sites.
+KRITISKE KRAV:
+- Søg PRIMÆRT på: bilbasen.dk, dba.dk, biltorvet.dk, autotorvet.dk, autouncle.dk
+- Find minimum 8-15 konkrete bil-annoncer med ALLE detaljer
+- URLs skal være direkte links til specifikke bil-annoncer (ikke kategorisider eller søgeresultater)
+- ALLE resultater skal have konkrete priser, årgange og kilometerstand
+- Verificer at alle URLs er gyldige og fører til bil annoncer
+- Inkluder kun resultater fra danske bilsites
+- For leasing søgninger, prioriter leasing tilbud hvis tilgængelige
+- Match udstyr fleksibelt (f.eks. "læder" matcher "læder sæder", "læder rat")
+- Hvis få resultater findes, udvid søgningen til lignende modeller
 
-JSON struktur (returner kun JSON array, ingen anden tekst):
-[
-  {
-    "title": "bil titel",
-    "url": "link til bil",
-    "ask_price": pris_i_kr,
-    "monthly_price": månedlig_pris_i_kr,
-    "year": årstal,
-    "mileage": kilometer,
-    "location": "by/område",
-    "fuel_type": "brændstof",
-    "transmission": "gearkasse"
-  }
-]
-
-Find minimum 5-10 konkrete bil-annoncer med korrekte links til specifikke biler (ikke kategorisider).`;
+Returner data i det specificerede JSON format med følgende felter:
+- title: Bil titel/navn
+- url: Direkte link til bil annoncen
+- ask_price: Salgspris (hvis tilgængelig)
+- monthly_price: Månedlig pris for leasing (hvis tilgængelig)
+- year: Årgang
+- mileage: Kilometerstand
+- location: Lokation/by
+- equipment: Array af udstyr (hvis tilgængeligt)`;
 }
 
 export async function POST(request: NextRequest) {
@@ -195,7 +239,25 @@ export async function POST(request: NextRequest) {
     // Construct Danish prompt for Perplexity
     const prompt = buildSearchPrompt(body);
 
-    // Call Perplexity API
+    // Define JSON Schema for structured output - simplified for better compatibility
+    const carResultSchema = {
+      type: "array",
+      items: {
+        type: "object",
+        properties: {
+          title: { type: "string" },
+          url: { type: "string" },
+          ask_price: { type: "string" },
+          monthly_price: { type: "string" },
+          year: { type: "string" },
+          mileage: { type: "string" },
+          location: { type: "string" }
+        },
+        required: ["title", "url"]
+      }
+    };
+
+    // Call Perplexity API with JSON Schema response format
     const perplexityResponse = await fetch('https://api.perplexity.ai/chat/completions', {
       method: 'POST',
       headers: {
@@ -203,13 +265,26 @@ export async function POST(request: NextRequest) {
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        model: 'sonar',
+        model: 'sonar-pro',
         messages: [
           {
             role: 'user',
             content: prompt
           }
-        ]
+        ],
+        max_tokens: 4000,
+        temperature: 0.1,
+        return_citations: true,
+        return_images: false,
+        return_related_questions: false,
+        search_domain_filter: ["bilbasen.dk", "dba.dk", "biltorvet.dk", "autotorvet.dk", "autouncle.dk"],
+        search_recency_filter: "month",
+        response_format: {
+          type: "json_schema",
+          json_schema: {
+            schema: carResultSchema
+          }
+        }
       })
     });
 
@@ -230,43 +305,78 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Try to parse as JSON
+    // Try to parse as JSON directly (should work with JSON Schema)
     try {
       const parsedResults = JSON.parse(content);
 
-      // Filter valid car results with more lenient validation
-      const filteredResults = filterValidCarResults(parsedResults);
+      // Check if it's an array of car results
+      if (Array.isArray(parsedResults)) {
+        // Filter valid car results with more lenient validation
+        const filteredResults = filterValidCarResults(parsedResults);
 
-      return NextResponse.json({
-        ok: true,
-        query: body,
-        results: filteredResults,
-        total_found: filteredResults.length,
-        raw_total: Array.isArray(parsedResults) ? parsedResults.length : 0,
-        debug: {
-          original_count: Array.isArray(parsedResults) ? parsedResults.length : 0,
-          filtered_count: filteredResults.length,
-          filtered_out: Array.isArray(parsedResults) ? parsedResults.length - filteredResults.length : 0
-        }
-      });
+        console.log(`✅ Direct JSON parse successful: ${parsedResults.length} -> ${filteredResults.length} results`);
+
+        return NextResponse.json({
+          ok: true,
+          query: body,
+          results: filteredResults,
+          total_found: filteredResults.length,
+          raw_total: parsedResults.length,
+          debug: {
+            json_schema_used: true,
+            original_count: parsedResults.length,
+            filtered_count: filteredResults.length,
+            filtered_out: parsedResults.length - filteredResults.length
+          }
+        });
+      } else {
+        console.log('❌ Parsed JSON is not an array, falling back to extraction');
+        throw new Error('Not an array');
+      }
     } catch (parseError) {
       console.error('JSON parse error:', parseError);
       console.log('Raw content:', content);
 
-      // Try to extract JSON from text that might have extra content
-      // First try to extract from markdown code blocks
-      let jsonMatch = content.match(/```json\s*(\[[\s\S]*?\])\s*```/);
-      if (!jsonMatch) {
-        // Fallback to simple array extraction
-        jsonMatch = content.match(/\[[\s\S]*\]/);
+      // Enhanced JSON extraction with multiple patterns
+      console.log('🔄 Trying enhanced regex extraction patterns...');
+
+      const patterns = [
+        // JSON code blocks (most common with Perplexity)
+        /```json\s*(\[[\s\S]*?\])\s*```/i,           // Standard JSON code block
+        /```\s*(\[[\s\S]*?\])\s*```/i,               // Generic code block
+        // Direct JSON array at start (for pure JSON Schema responses)
+        /^(\[\s*\{[\s\S]*?\}\s*\])/,
+        // Extract from results property
+        /"results":\s*(\[[\s\S]*?\])/i,
+        // Find arrays with car-specific properties
+        /(\[[\s\S]*?\{[\s\S]*?"title"[\s\S]*?\])/,   // Find array with title property
+        /(\[[\s\S]*?\{[\s\S]*?"url"[\s\S]*?\])/,     // Find array with url property
+        /(\[[\s\S]*?\{[\s\S]*?"ask_price"[\s\S]*?\])/,  // Find array with ask_price property
+        // Any JSON array (fallback)
+        /(\[[\s\S]*\])/
+      ];
+
+      let jsonMatch = null;
+      for (let i = 0; i < patterns.length; i++) {
+        console.log(`🔍 Testing pattern ${i + 1}:`, patterns[i].toString());
+        jsonMatch = content.match(patterns[i]);
+        if (jsonMatch) {
+          console.log(`✅ Pattern ${i + 1} matched! Captured:`, jsonMatch[1]?.substring(0, 100) + '...');
+          break;
+        } else {
+          console.log(`❌ Pattern ${i + 1} no match`);
+        }
       }
 
       if (jsonMatch) {
         try {
           // Use the captured group if available, otherwise the full match
           const jsonText = jsonMatch[1] || jsonMatch[0];
+          console.log('Attempting to parse extracted JSON:', jsonText.substring(0, 200) + '...');
           const extractedResults = JSON.parse(jsonText);
           const filteredResults = filterValidCarResults(extractedResults);
+
+          console.log(`JSON extraction successful: ${extractedResults.length} -> ${filteredResults.length} results`);
 
           return NextResponse.json({
             ok: true,
@@ -278,13 +388,17 @@ export async function POST(request: NextRequest) {
               extraction_used: true,
               extraction_method: jsonMatch[1] ? 'markdown' : 'simple',
               original_count: Array.isArray(extractedResults) ? extractedResults.length : 0,
-              filtered_count: filteredResults.length
+              filtered_count: filteredResults.length,
+              json_preview: jsonText.substring(0, 100) + '...'
             }
           });
         } catch (extractError) {
           console.error('JSON extraction error:', extractError);
+          console.log('Failed JSON text:', jsonMatch[1] || jsonMatch[0]);
           // Still failed, return raw
         }
+      } else {
+        console.log('No JSON match found in content:', content.substring(0, 200) + '...');
       }
 
       // Fallback to raw text response

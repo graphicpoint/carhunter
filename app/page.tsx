@@ -52,6 +52,50 @@ export default function Home() {
     }
   };
 
+  const handleDirectSearch = async (formData: SearchFormData) => {
+    setLoading(true);
+    setResult(null);
+
+    try {
+      // Convert form data to API request format
+      const allModels = Object.values(formData.models).flat();
+
+      const searchRequest: SearchRequest = {
+        mode: formData.mode,
+        makes: formData.makes,
+        models: allModels,
+        year_from: formData.year_from,
+        year_to: formData.year_to,
+        fuel_types: formData.fuel_types,
+        equipment: formData.equipment,
+        max_price: formData.max_price,
+        monthly_max: formData.monthly_max,
+        downpayment_max: formData.downpayment_max,
+        tax_paid: formData.tax_paid,
+        optimization: formData.optimization,
+        sites: formData.sites as string[],
+      };
+
+      const response = await fetch('/api/direct-search', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(searchRequest),
+      });
+
+      const data = await response.json();
+      setResult(data);
+    } catch {
+      setResult({
+        ok: false,
+        error: 'Network error - kunne ikke forbinde til serveren'
+      });
+    } finally {
+      setLoading(false);
+    }
+  };
+
   return (
     <div style={{ minHeight: '100vh', backgroundColor: '#f8f9fa' }}>
       <div style={{ padding: '2rem 0' }}>
@@ -71,7 +115,7 @@ export default function Home() {
             boxShadow: '0 2px 10px rgba(0,0,0,0.1)',
             marginBottom: '2rem'
           }}>
-            <SearchForm onSubmit={handleSearch} loading={loading} />
+            <SearchForm onSubmit={handleSearch} onDirectSearch={handleDirectSearch} loading={loading} />
           </div>
 
           {result && (

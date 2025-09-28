@@ -49,10 +49,11 @@ const LEASING_OPTIMIZATION_OPTIONS = [
 
 interface SearchFormProps {
   onSubmit: (data: SearchFormData) => void;
+  onDirectSearch?: (data: SearchFormData) => void;
   loading?: boolean;
 }
 
-export default function SearchForm({ onSubmit, loading = false }: SearchFormProps) {
+export default function SearchForm({ onSubmit, onDirectSearch, loading = false }: SearchFormProps) {
   const [formData, setFormData] = useState<SearchFormData>({
     mode: 'buy',
     makes: [],
@@ -118,6 +119,12 @@ export default function SearchForm({ onSubmit, loading = false }: SearchFormProp
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     onSubmit(formData);
+  };
+
+  const handleDirectSearch = () => {
+    if (onDirectSearch) {
+      onDirectSearch(formData);
+    }
   };
 
   const makeOptions: MakeOption[] = makesData?.makes?.map(make => ({
@@ -366,9 +373,60 @@ export default function SearchForm({ onSubmit, loading = false }: SearchFormProp
         />
       </div>
 
-      <button type="submit" disabled={loading} className="submit-button">
-        {loading ? 'Søger...' : 'Søg biler'}
-      </button>
+      <div className="button-group">
+        <button type="submit" disabled={loading} className="submit-button perplexity-button">
+          {loading ? 'Søger...' : 'Søg med Perplexity'}
+        </button>
+
+        <button
+          type="button"
+          disabled={loading}
+          className="submit-button direct-button"
+          onClick={handleDirectSearch}
+        >
+          {loading ? 'Søger...' : 'Pålidelig Søgning'}
+        </button>
+      </div>
+
+      <style jsx>{`
+        .button-group {
+          display: flex;
+          gap: 1rem;
+        }
+
+        .submit-button {
+          flex: 1;
+          padding: 0.75rem 1.5rem;
+          color: white;
+          border: none;
+          border-radius: 4px;
+          font-size: 1rem;
+          font-weight: bold;
+          cursor: pointer;
+          transition: background-color 0.2s;
+        }
+
+        .perplexity-button {
+          background-color: #007bff;
+        }
+
+        .perplexity-button:hover:not(:disabled) {
+          background-color: #0056b3;
+        }
+
+        .direct-button {
+          background-color: #28a745;
+        }
+
+        .direct-button:hover:not(:disabled) {
+          background-color: #1e7e34;
+        }
+
+        .submit-button:disabled {
+          background-color: #6c757d;
+          cursor: not-allowed;
+        }
+      `}</style>
     </form>
   );
 }
