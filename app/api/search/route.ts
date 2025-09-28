@@ -142,7 +142,9 @@ function buildSearchPrompt(body: SearchRequest): string {
 
   return `Som bilkøber-assistent skal du søge efter ${modeText} ${vehicleText} ${yearText} ${priceText}${fuelText}${equipmentText}${optimizationText} på følgende danske bilsites: ${sitesText}.
 
-Søg kun på de specificerede sites og returner resultater i JSON format med følgende struktur:
+VIGTIGT: Returner ALTID resultater i ren JSON format uden ekstra tekst eller markdown. Søg kun på de specificerede sites.
+
+JSON struktur (returner kun JSON array, ingen anden tekst):
 [
   {
     "title": "bil titel",
@@ -157,7 +159,7 @@ Søg kun på de specificerede sites og returner resultater i JSON format med fø
   }
 ]
 
-Hvis JSON ikke er muligt, giv da et kort tekstsvar med de bedste fund.`;
+Find minimum 5-10 konkrete bil-annoncer med korrekte links til specifikke biler (ikke kategorisider).`;
 }
 
 export async function POST(request: NextRequest) {
@@ -252,10 +254,18 @@ export async function POST(request: NextRequest) {
       console.log('Raw content:', content);
 
       // Try to extract JSON from text that might have extra content
-      const jsonMatch = content.match(/\[[\s\S]*\]/);
+      // First try to extract from markdown code blocks
+      let jsonMatch = content.match(/```json\s*(\[[\s\S]*?\])\s*```/);
+      if (!jsonMatch) {
+        // Fallback to simple array extraction
+        jsonMatch = content.match(/\[[\s\S]*\]/);
+      }
+
       if (jsonMatch) {
         try {
-          const extractedResults = JSON.parse(jsonMatch[0]);
+          // Use the captured group if available, otherwise the full match
+          const jsonText = jsonMatch[1] || jsonMatch[0];
+          const extractedResults = JSON.parse(jsonText);
           const filteredResults = filterValidCarResults(extractedResults);
 
           return NextResponse.json({
@@ -266,11 +276,13 @@ export async function POST(request: NextRequest) {
             raw_total: Array.isArray(extractedResults) ? extractedResults.length : 0,
             debug: {
               extraction_used: true,
+              extraction_method: jsonMatch[1] ? 'markdown' : 'simple',
               original_count: Array.isArray(extractedResults) ? extractedResults.length : 0,
               filtered_count: filteredResults.length
             }
           });
-        } catch {
+        } catch (extractError) {
+          console.error('JSON extraction error:', extractError);
           // Still failed, return raw
         }
       }
