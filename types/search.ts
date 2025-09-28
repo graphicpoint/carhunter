@@ -94,6 +94,12 @@ export interface SearchResponse {
   timestamp?: number;
   total_found?: number;
   raw_total?: number;
+  debug?: {
+    original_count?: number;
+    filtered_count?: number;
+    filtered_out?: number;
+    extraction_used?: boolean;
+  };
 }
 
 // Option types for react-select
