@@ -1,0 +1,86 @@
+{
+  "augment.autoApprove": {
+    "enabled": true,
+    "tools": [
+      "sequentialthinking_Sequential_thinking",
+      "browser_navigate_Playwright",
+      "browser_snapshot_Playwright", 
+      "browser_take_screenshot_Playwright",
+      "browser_click_Playwright",
+      "browser_type_Playwright",
+      "browser_fill_form_Playwright",
+      "browser_wait_for_Playwright",
+      "browser_evaluate_Playwright",
+      "browser_console_messages_Playwright",
+      "browser_network_requests_Playwright",
+      "browser_close_Playwright",
+      "browser_resize_Playwright",
+      "browser_handle_dialog_Playwright",
+      "browser_file_upload_Playwright",
+      "browser_drag_Playwright",
+      "browser_hover_Playwright",
+      "browser_select_option_Playwright",
+      "browser_tabs_Playwright",
+      "browser_press_key_Playwright",
+      "browser_navigate_back_Playwright",
+      "browser_install_Playwright",
+      "view",
+      "str-replace-editor",
+      "save-file",
+      "remove-files",
+      "codebase-retrieval",
+      "git-commit-retrieval",
+      "diagnostics",
+      "web-search",
+      "web-fetch",
+      "open-browser",
+      "render-mermaid",
+      "view-range-untruncated",
+      "search-untruncated",
+      "remember",
+      "view_tasklist",
+      "add_tasks",
+      "update_tasks",
+      "reorganize_tasklist"
+    ],
+    "terminalCommands": [
+      "git add .",
+      "git status",
+      "git log --oneline -10",
+      "git show --name-only",
+      "git diff",
+      "git checkout",
+      "npm run build",
+      "npm run dev",
+      "npm install",
+      "npm test",
+      "sleep",
+      "curl -s",
+      "ls",
+      "pwd",
+      "cat",
+      "grep",
+      "find",
+      "echo"
+    ]
+  },
+  "augment.workflow": {
+    "autoTest": true,
+    "autoDeploy": false,
+    "debugMode": true,
+    "sequentialThinking": {
+      "autoUse": true,
+      "maxThoughts": 10
+    },
+    "browserTesting": {
+      "autoScreenshot": true,
+      "captureLogs": true
+    }
+  },
+  "augment.project": {
+    "name": "Carhunter",
+    "type": "Next.js TypeScript",
+    "framework": "Next.js 15",
+    "deployment": "Vercel"
+  }
+}
