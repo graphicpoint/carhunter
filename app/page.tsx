@@ -104,6 +104,12 @@ export default function Home() {
                             {' '}(filtrerede {result.raw_total - result.results.length} irrelevante resultater fra)
                           </span>
                         )}
+                        {(result as any).debug && (
+                          <span style={{ color: '#666', fontSize: '0.8em', display: 'block', marginTop: '0.25rem' }}>
+                            Debug: Original {(result as any).debug.original_count}, Filtered {(result as any).debug.filtered_count}
+                            {(result as any).debug.extraction_used && ' (JSON extracted from text)'}
+                          </span>
+                        )}
                       </p>
                       <div style={{ overflowX: 'auto' }}>
                         <table style={{
