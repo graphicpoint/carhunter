@@ -92,6 +92,8 @@ export interface SearchResponse {
   results?: CarResult[] | { raw: string };
   error?: string;
   timestamp?: number;
+  total_found?: number;
+  raw_total?: number;
 }
 
 // Option types for react-select

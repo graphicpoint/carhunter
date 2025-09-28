@@ -42,7 +42,7 @@ export default function Home() {
 
       const data = await response.json();
       setResult(data);
-    } catch (error) {
+    } catch {
       setResult({
         ok: false,
         error: 'Network error - kunne ikke forbinde til serveren'
@@ -99,9 +99,9 @@ export default function Home() {
                     <div>
                       <p style={{ marginBottom: '1rem', color: '#666' }}>
                         Fandt {result.results.length} gyldige resultater
-                        {(result as any).raw_total && (result as any).raw_total > result.results.length && (
+                        {result.raw_total && result.raw_total > result.results.length && (
                           <span style={{ color: '#888', fontSize: '0.9em' }}>
-                            {' '}(filtrerede {(result as any).raw_total - result.results.length} irrelevante resultater fra)
+                            {' '}(filtrerede {result.raw_total - result.results.length} irrelevante resultater fra)
                           </span>
                         )}
                       </p>
